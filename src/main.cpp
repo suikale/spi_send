@@ -10,6 +10,8 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
+#include <vector>
 #include <wiringPiSPI.h>
 
 #define SPI_CHANNEL 0
@@ -19,15 +21,17 @@ using namespace std;
 
 int main(int argc, char **argv)
 {   
+    vector<int> vect;
     int i = 0;
     // spi device
     int fd = wiringPiSPISetupMode(SPI_CHANNEL, SPI_CLOCK_SPEED, 0);
     // values read from file
-    string values;
+    string unparsedValue;
     // converted to int
-    int intValue;
-    // int array
-    int intArray[i];
+    int pulseLength;
+    // int array from previous values
+    // length may need to change
+    int pulseLengthArray[255];
 
     // exit if $1 is empty
     // TODO: check if file exists
@@ -43,31 +47,35 @@ int main(int argc, char **argv)
     }
     
     // read $1
-    ifstream intValues(argv[1]);
+    ifstream unparsedValues(argv[1]);
 
     // reads every line from text file, 
     // extracts pulse length and stores it in array
+    // format 1234567,123,1 (timestamp, pulse length, state)
     // TODO: make this as a method
-    while (getline(intValues, values)) {
-        // still a string, format 1234567,123,1 (timestamp, pulse length, state)
-        values;
-        // extract the pulse length
-        ;
-        // convert to int
-        ;
-        // store to array place i
-        ;
-        // raise i
-        i++;
+    while (getline (unparsedValues, unparsedValue)) {
+        int j = 0;
+        // straight from stackoverflow
+        stringstream ss(unparsedValue);
+        
+        for (int i; ss >> i;) {
+            vect.push_back(i);
+            if (ss.peek() == ',')
+                ss.ignore();
+        }
+
+        // store pulse length in array
+        pulseLengthArray[j] = vect[2];
+        j++;
     }
 
-    // close the file
-    intValues.close();
+    // close the input file
+    unparsedValues.close();
 
     // send data through spi
     // TODO: maybe send whole array instead of single int at a time
-    for (i = 0; i < sizeof(intArray); i++) {
-        SendData(intArray[i]);
+    for (i = 0; i < sizeof(pulseLengthArray); i++) {
+        SendData(pulseLengthArray[i]);
     }
    return 0;
 }
