@@ -19,6 +19,17 @@
 
 using namespace std;
 
+// input: int [0-65535]
+// output: multiples of 256 [0-255], modulo [0-255]
+void sendData(int intNumber) {
+    int whole = intNumber / 256;
+    int modulo = intNumber % 256;
+    
+    unsigned char full[2] = { whole, modulo };
+    wiringPiSPIDataRW(SPI_CHANNEL, full, 2);
+}
+
+
 int main(int argc, char **argv)
 {   
     vector<int> vect;
@@ -78,14 +89,4 @@ int main(int argc, char **argv)
         sendData(pulseLengthArray[i]);
     }
    return 0;
-}
-
-/// input: int [0-65535]
-/// output: multiples of 256 [0-255], modulo [0-255]
-void sendData(int intNumber) {
-    int whole = intNumber / 256;
-    int modulo = intNumber % 256;
-    
-    unsigned char full[2] = { whole, modulo };
-    wiringPiSPIDataRW(SPI_CHANNEL, full, 2);
 }
