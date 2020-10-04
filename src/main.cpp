@@ -75,14 +75,14 @@ int main(int argc, char **argv)
     // send data through spi
     // TODO: maybe send whole array instead of single int at a time
     for (i = 0; i < sizeof(pulseLengthArray); i++) {
-        SendData(pulseLengthArray[i]);
+        sendData(pulseLengthArray[i]);
     }
    return 0;
 }
 
 /// input: int [0-65535]
 /// output: multiples of 256 [0-255], modulo [0-255]
-void SendData(int intNumber) {
+void sendData(int intNumber) {
     int whole = intNumber / 256;
     int modulo = intNumber % 256;
     
