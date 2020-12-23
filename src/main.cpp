@@ -1,24 +1,23 @@
 /// @author suikale
-/// @version 04102020
+/// @version 23122020
 ///
-/// reads pulse length from csv, converts it to char 
+/// reads pulse length from file, converts it to int 
 /// and sends it through raspberry pi spi bus
 /// works with numbers between 0-65535
+/// input file contains one pulse length per line
 /// depends: wiringPi
-///
-/// TODO: make it work
-
+#include <wiringPiSPI.h>
 #include <iostream>
 #include <fstream>
-#include <sstream>
-#include <vector>
-#include <wiringPiSPI.h>
+#include <string>
+#include <list>
 
 #define SPI_CHANNEL 0
 #define SPI_CLOCK_SPEED 2000000
 
 using namespace std;
 
+// send pulse length to transmitter
 // input: int [0-65535]
 // output: multiples of 256 [0-255], modulo [0-255]
 void sendData(int intNumber) {
@@ -30,63 +29,43 @@ void sendData(int intNumber) {
 }
 
 
-int main(int argc, char **argv)
-{   
-    vector<int> vect;
-    int i = 0;
-    // spi device
+int main(int argc, char *argv[])
+{       
+    // spi device. exit if not found
     int fd = wiringPiSPISetupMode(SPI_CHANNEL, SPI_CLOCK_SPEED, 0);
-    // values read from file
-    string unparsedValue;
-    // converted to int
-    int pulseLength;
-    // int array from previous values
-    // length may need to change
-    int pulseLengthArray[255];
-
-    // exit if $1 is empty
-    // TODO: check if file exists
-    if (argv[1] == "") {
-        cout << "tarvii filen";
-        return -1;
-    }
-    
-    // exit if spi device not found
     if (fd == -1) {
         cout << "SPI device not found";
         return -1;
     }
+
+    // read input file line by line. exit if $1 is empty
+    // TODO: check if file exists
+    if (!argv[1]) {
+        cout << "Give input file" << endl;
+        return -1;
+    }
+
+    //open file
+    ifstream infile(argv[1]);
     
-    // read $1
-    ifstream unparsedValues(argv[1]);
-
-    // reads every line from text file, 
-    // extracts pulse length and stores it in array
-    // format 1234567,123,1 (timestamp, pulse length, state)
-    // TODO: make this as a method
-    while (getline (unparsedValues, unparsedValue)) {
-        int j = 0;
-        // straight from stackoverflow
-        stringstream ss(unparsedValue);
-        
-        for (int i; ss >> i;) {
-            vect.push_back(i);
-            if (ss.peek() == ',')
-                ss.ignore();
-        }
-
-        // store pulse length in array
-        pulseLengthArray[j] = vect[2];
-        j++;
+    //for each row convert contents to int and store into a list   
+    list<int> pulseLengths;
+    string line;
+    while (getline(infile, line)) {
+        int i = stoi(line);
+        if (!(i == 0)) {
+            pulseLengths.push_back(i);
+        }      
     }
 
-    // close the input file
-    unparsedValues.close();
-
-    // send data through spi
-    // TODO: maybe send whole array instead of single int at a time
-    for (i = 0; i < sizeof(pulseLengthArray); i++) {
-        sendData(pulseLengthArray[i]);
+    //close file
+    infile.close();
+    
+    //for each int in array
+    for(int i : pulseLengths)
+    {
+        //send it to spi bus
+        sendData(i);
     }
-   return 0;
+    return 0;
 }
