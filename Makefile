@@ -1,5 +1,5 @@
 TARGET=spi_send
-FLAGS=-Wall -lwiringPi
+FLAGS=-Wall -I/usr/local/include -L/usr/local/lib -lwiringPi
 
 all :
-	gcc -o $(TARGET) $(TARGET).cpp $(FLAGS)
+	g++ -o $(TARGET) $(TARGET).cpp $(FLAGS)
