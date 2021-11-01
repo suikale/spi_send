@@ -1,2 +1,2 @@
 # spi_send
-Send values over SPI with Raspberry Pi
+Communicate with ATtiny85 over SPI with Raspberry Pi
