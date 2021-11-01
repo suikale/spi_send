@@ -1,32 +1,31 @@
 /// @author suikale
-/// @version 17062021
+/// @version 01112021
 /// depends: wiringPi
 #include <wiringPi.h>
 #include <wiringPiSPI.h>
 #include <iostream>
-#include <cstring>
 #include <string>
-#include "buffer.h"
 
-#define SPI_CHANNEL 0
+#define SPI_CHANNEL 	0
 #define SPI_CLOCK_SPEED 2000000
-#define RESET_PIN 22
-#define BUFFER_SIZE 128
+#define RESET_PIN 		22
+#define MAX_ARGS 		3
 
-unsigned char hex;
-Buffer buffer{BUFFER_SIZE};
-
-void spi_rw(unsigned char *data)
+void spi_rw(unsigned char *data, int len)
 {
-	wiringPiSPIDataRW(SPI_CHANNEL, data, 1);
-	buffer.push(*data);
+	wiringPiSPIDataRW(SPI_CHANNEL, data, len);
 }
 
 int main(int argc, char **argv)
 {       
     if (argc < 2)
 	{
-		std::cout << "usage: " << argv[0] << " [COMMAND|reset (1-4)]" << std::endl;
+		std::cout << "usage: " << std::endl;
+		std::cout << "  set single socket state: " << argv[0] << " 0/1 [id] [group]" << std::endl;
+		std::cout << "  set group state:         " << argv[0] << " 2/3 [group]" << std::endl;
+		std::cout << "  reset socket:            " << argv[0] << " r [id] [group]" << std::endl;
+		std::cout << "  reset avr:               " << argv[0] << " hr" << std::endl;
+		std::cout << "    where [id/group] = 0 ... 3" << std::endl;
 		return -1;
 	}
 	 
@@ -35,64 +34,30 @@ int main(int argc, char **argv)
     wiringPiSPISetup(SPI_CHANNEL, SPI_CLOCK_SPEED);
 	pinMode(RESET_PIN, 1);
 
-	// katso halutaanko resetoida
-	if ((std::string)argv[1] == "reset")
+	// hard reset
+	if ((std::string)argv[1] == "hr")
 	{			
-		// spi_send reset: reset avr
-		if (!argv[2])
-		{
-			digitalWrite(RESET_PIN, 1);
-			digitalWrite(RESET_PIN, 0);
-			std::cout << "avr reset" << std::endl;
-			return 0;
-		}
-		
-		// spi_send reset 1-4: reset pairing with 
-		hex = 0x00;
-		if (*argv[2] == '1') hex = 'A';
-		if (*argv[2] == '2') hex = 'B';
-		if (*argv[2] == '3') hex = 'C';
-		if (*argv[2] == '4') hex = 'D';
-		
-		if (hex != 0x00)
-		{
-			spi_rw(&hex);
-			std::cout << "pairing with " << *argv[2] << " reset" << std::endl;
-		}
-		else
-		{
-			std::cout << "usage:" << std::endl;
-			std::cout << argv[0] << " reset to reset avr" << std::endl;
-			std::cout << argv[0] << " reset 1-4 to reset pairing with device 1-4" << std::endl;
-		}
+		digitalWrite(RESET_PIN, 1);
+		digitalWrite(RESET_PIN, 0);
+		std::cout << "avr reset" << std::endl;
 		return 0;
 	}
 
-    // d on pointer lähtevään dataan
-    unsigned char *d = nullptr;
-    
-	// lähetä kaikki parametrit kirjain kerrallaan
-	int i = 1;
-
-	while (i < argc)
-	{
-		d = (unsigned char *)argv[i];
-
-		for (unsigned char *p = d; *p != '\0'; p++)
-		{
-    		// lähetä ja vastaanota dataa
-    		spi_rw(p);
-		}
-		i++;
-	}	
 	
-	// tyhjennä bufferi
-	std::cout << "bufferissa: " << std::endl;
-	while (!buffer.is_empty())
-	{	
-		std::cout << buffer.pop();
+	char c[MAX_ARGS];
+	for (int i = 0; i < MAX_ARGS; i++)
+		c[i] = 0;
+	
+	for (int i = 1; i < argc && i <= MAX_ARGS; i++)
+		c[i - 1] = *argv[i];
+	
+	for (int i = 0; i < argc; i++)
+	{
+		unsigned char j = (unsigned char) *(c + i);
+		spi_rw(&j, 1);
 	}
-	std::cout << std::endl;
-
-    return 0;
+	
+	std::cout << "sent " << argc - 1 << " bytes, received: " << c << std::endl;
+	
+	return 0;
 }
