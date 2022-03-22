@@ -1,6 +1,6 @@
 /*
 	remote id: -rid int (0 - 67108863)
-    remote: -r char (0 - 3)
+    remote: -r char (1 - 3)
     group:  -g char (0 - 3)
     device: -d char (0 - 3)
     state:  -s char (0 - 3)
@@ -12,12 +12,14 @@
 	TODO: clean up if's?
 	TODO: add support also for "-r12" style options ???
 	TODO: adjust delay to hard reset??
+	TODO: doesn't work
 */
 
 #include <wiringPiSPI.h>
 #include <wiringPi.h>
 #include <algorithm>
 #include <iostream>
+#include <unistd.h>
 #include <string>
 
 #define SPI_CHANNEL 	0
@@ -30,7 +32,7 @@ void printUsage()
     std::cout << "usage: ./main args" << std::endl;
     std::cout << "  where args is a combination of" << std::endl;
     std::cout << "    -rid (0 - 67108863) | for setting remote id" << std::endl;
-    std::cout << "    -r   (0 - 255)      | for selecting hardcoded remote" << std::endl;
+    std::cout << "    -r   (1 - 255)      | for selecting hardcoded remote" << std::endl;
     std::cout << "    -g   (0 - 3)        | for selecting group" << std::endl;
     std::cout << "    -d   (0 - 3)        | for selecting device" << std::endl;
     std::cout << "    -s   (0 - 3)        | for selecting state" << std::endl;
@@ -53,15 +55,15 @@ bool cmdOptionExists(char** begin, char** end, const std::string& option)
     return std::find(begin, end, option) != end;
 }
 
-void spiRW(char * data, int len)
+void spiRW(unsigned char * data, int len)
 {
-	wiringPiSPIDataRW(SPI_CHANNEL, data, len);
-
     printf("data sent:\n");
     for (int i = 0; i < len; i++)
     {
-        printf("  0x%02x\n", (unsigned char) data[i]);
+        printf("  0x%02x\n", data[i]);
     }
+	
+	wiringPiSPIDataRW(SPI_CHANNEL, data, len);
 }
 
 void hardResetAVR()
@@ -115,9 +117,9 @@ int main(int argc, char ** argv)
     if (r) 
     { 
         remote = atoi(r);
-        if (remote < 0 || 255 < remote)
+        if (remote < 1 || 255 < remote)
         {
-            std::cout << "please use hardcoded remote id between 0 and 255" << std::endl;
+            std::cout << "please use hardcoded remote id between 1 and 255" << std::endl;
             return 0;
         }
     }
@@ -174,9 +176,9 @@ int main(int argc, char ** argv)
             2: [00ggddss]
         */
 
-        char d[2];
-        d[0] = (char)(remote & 0xff);
-        d[1] = (char)(0 | (state & 3) | ((device & 3) << 2) | ((group & 3) << 4));
+        unsigned char d[2];
+        d[0] = (unsigned char)(remote & 0xff);
+        d[1] = (unsigned char)(0 | (state & 3) | ((device & 3) << 2) | ((group & 3) << 4));
         spiRW(d, sizeof(d));
     }
 
@@ -191,12 +193,12 @@ int main(int argc, char ** argv)
             5: [rrggddss] 
         */
 
-        char d[5];
+        unsigned char d[5];
         d[0] = 0;
-        d[1] = (char)((remoteId >> 18) & 0xff);
-        d[2] = (char)((remoteId >> 10) & 0xff);
-        d[3] = (char)((remoteId >> 2) & 0xff);
-        d[4] = (char)((state & 3) | ((device & 3) << 2) | ((group & 3) << 4) | ((remoteId & 3) << 6));
+        d[1] = (unsigned char)((remoteId >> 18) & 0xff);
+        d[2] = (unsigned char)((remoteId >> 10) & 0xff);
+        d[3] = (unsigned char)((remoteId >> 2) & 0xff);
+        d[4] = (unsigned char)((state & 3) | ((device & 3) << 2) | ((group & 3) << 4) | ((remoteId & 3) << 6));
         spiRW(d, sizeof(d));
     }
 
